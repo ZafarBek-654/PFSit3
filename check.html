@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Диагностика Firebase | Birga</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;max-width:720px;margin:0 auto;padding:20px;background:#f4f5fb;color:#12131a}
+.r{background:#fff;border:1px solid #e3e5f0;border-left:5px solid #999;border-radius:10px;padding:10px 14px;margin:8px 0}
+.ok{border-left-color:#12a36b}.er{border-left-color:#e5484d}.wa{border-left-color:#d98a00}small{color:#6b6f85}code{background:#eef;padding:1px 5px;border-radius:5px}
+@media(prefers-color-scheme:dark){body{background:#0b0c12;color:#eef0ff}.r{background:#151722;border-color:#252838}code{background:#252838}small{color:#9296b0}}</style></head>
+<body><h1>🔧 Диагностика Firebase</h1><p><small>Страница проверяет, подключена ли общая база. Ничего не меняет.</small></p><div id="o"></div>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase.js"></script>
+<script src="localdb.js"></script>
+<script>
+const o=document.getElementById("o"),add=(c,t,h)=>o.insertAdjacentHTML("beforeend",`<div class="r ${c}"><b>${c=="ok"?"✅":c=="er"?"❌":"⚠️"} ${t}</b>${h?"<br><small>"+h+"</small>":""}</div>`);
+(async()=>{
+  add("wa","Адрес страницы: <code>"+location.host+"</code>","Открывай сайт по ссылке с интернета (https://…), а не файлом с компьютера.");
+  if(typeof firebaseConfig==="undefined")return add("er","firebase.js не выполнился","В файле ошибка. Частая причина: вставлен код Firebase целиком (со строками <code>import …</code> и <code>initializeApp</code>). Нужен только объект <code>firebaseConfig = { … }</code> — остальное удали. Нажми F12 → Console, там будет красная ошибка.");
+  const c=firebaseConfig;
+  if(c.apiKey==="YOUR_API_KEY")return add("er","В firebase.js всё ещё YOUR_API_KEY","Значит на сайт загружена старая версия файла. Загрузи папку заново и открой НОВУЮ ссылку (Netlify Drop при каждом перетаскивании создаёт новый сайт со своей ссылкой). Потом Ctrl+F5.");
+  add("ok","Конфиг найден","projectId: <code>"+c.projectId+"</code>");
+  if(!window.firebase)return add("er","Библиотеки Firebase не загрузились","Нет интернета или блокировщик (AdBlock/антивирус) режет gstatic.com. Отключи расширения для этой страницы.");
+  add("ok","Библиотеки Firebase загружены");
+  if(FB.local)return add("er","Firebase не запустился, работает локальная демо-база","Причина: "+FB.why);
+  add("ok","Режим: общая база Firebase ✅");
+  try{await FB.db.collection("products").get();add("ok","Firestore отвечает и правила разрешают чтение")}
+  catch(e){add("er","Firestore: "+(e.code||e.message),e.code=="permission-denied"?"Правила не опубликованы. Firestore → Rules → вставь содержимое firestore.rules → Publish.":e.code=="failed-precondition"||e.code=="unavailable"?"База не создана или нет связи. Firestore → Create database.":String(e.message))}
+  try{await FB.auth.signInWithEmailAndPassword("check@example.com","wrong-pass-123");}
+  catch(e){const k=e.code||"";
+    if(k=="auth/operation-not-allowed")add("er","Вход по Email/Password выключен","Authentication → Sign-in method → Email/Password → Enable → Save.");
+    else if(k=="auth/unauthorized-domain")add("er","Домен не разрешён","Authentication → Settings → Authorized domains → Add domain: "+location.hostname);
+    else if(k=="auth/api-key-not-valid.-please-pass-a-valid-api-key."||k=="auth/invalid-api-key")add("er","Неверный apiKey","Скопируй конфиг заново из Project settings → Your apps.");
+    else add("ok","Authentication работает","Код ответа: "+k+" (это нормально для проверочного входа)")}
+  add("ok","Если все пункты зелёные — база общая. Зарегистрируйся на сайте и открой его с другого устройства.");
+})();
+</script></body></html>
